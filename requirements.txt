@@ -1,6 +1,6 @@
 Flask==2.3.2
 transformers==4.40.0
-torch==2.2.0        # or the appropriate torch for your environment (cpu/gpu)
+torch>=2.5.0        # or the appropriate torch for your environment (cpu/gpu)
 speechrecognition==3.10.0
 librosa==0.10.0
 soundfile==0.12.1
@@ -16,4 +16,5 @@ requests==2.31.0   # HTTP library for API calls
 gunicorn==21.2.0   # Production server
 python-multipart==0.0.6  # For handling file uploads
 openai-whisper==20231117  # For improved speech recognition
+
 
