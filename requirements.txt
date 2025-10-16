@@ -16,5 +16,7 @@ requests==2.31.0   # HTTP library for API calls
 gunicorn==21.2.0   # Production server
 python-multipart==0.0.6  # For handling file uploads
 openai-whisper==20231117  # For improved speech recognition
+supabase==2.3.0  # For Supabase integration
+Flask-CORS==4.0.0  # For CORS support
 
 

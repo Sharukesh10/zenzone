@@ -5,12 +5,12 @@ import logging
 import numpy as np
 import librosa
 import scipy.signal as _scipy_signal
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 
 from zenzone.emotion_analyzer import EmotionAnalyzer
 from zenzone.speech_recognition import SpeechToText
 from zenzone.activity_suggestions import get_activity_suggestion
-from zenzone.supabase_client import insert_session
+from zenzone.supabase_client import insert_session, create_user, login_user, get_current_user, logout_user
 
 # Compatibility shim: older/newer SciPy versions place window functions differently.
 # Some libraries (librosa and others) expect `scipy.signal.hann` to exist.
@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 # Initialize Flask app and configure upload folder
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 
 # Initialize the speech recognition and emotion analyzer
 speech_to_text = SpeechToText()
@@ -80,7 +81,10 @@ def combine_scores(text_score, voice_features):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    return render_template("index.html", user=user)
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -146,9 +150,10 @@ def analyze():
 
             # --- SUPABASE: Save session ---
             try:
-                # You can replace 'user_id' with a real user identifier if available
+                user = get_current_user()
+                user_id = user.id if user else "anonymous"
                 insert_session(
-                    user_id="anonymous",  # Replace with real user id if you have auth
+                    user_id=user_id,
                     stress_score=round(float(final_stress), 1),
                     emotion=emotion_label,
                     transcribed_text=text
@@ -175,7 +180,41 @@ def analyze():
         except Exception as e:
             logger.warning(f"Failed to clean up temporary file: {e}")
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
 
+        result = login_user(email, password)
+        if result["success"]:
+            return redirect(url_for('index'))
+        else:
+            return render_template("login.html", error=result["error"])
+
+    return render_template("login.html")
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+        name = request.form.get("name")
+        age = request.form.get("age")
+        college = request.form.get("college")
+
+        result = create_user(email, password, name, age, college)
+        if result["success"]:
+            return redirect(url_for('login'))
+        else:
+            return render_template("signup.html", error=result["error"])
+
+    return render_template("signup.html")
+
+@app.route("/logout")
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
 if __name__ == "__main__":
     from flask_cors import CORS

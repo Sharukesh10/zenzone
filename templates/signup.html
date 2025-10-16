@@ -1,0 +1,48 @@
+<!-- templates/signup.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Sign Up - ZenZone</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="/static/css/styles.css" rel="stylesheet" />
+</head>
+
+<body class="zen-glass">
+  <main class="glass-container">
+    <header class="glass-header">
+      <h1 class="zenzone-title">ZenZone</h1>
+      <p class="glass-subtitle">Create Your Account</p>
+    </header>
+    <div class="glass-card">
+      <form method="POST" class="auth-form">
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" id="email" name="email" required class="glass-input">
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" required class="glass-input">
+        </div>
+        <div class="form-group">
+          <label for="name">Name:</label>
+          <input type="text" id="name" name="name" required class="glass-input">
+        </div>
+        <div class="form-group">
+          <label for="age">Age:</label>
+          <input type="number" id="age" name="age" required class="glass-input">
+        </div>
+        <div class="form-group">
+          <label for="college">College:</label>
+          <input type="text" id="college" name="college" required class="glass-input">
+        </div>
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+        <button type="submit" class="glass-btn">Sign Up</button>
+      </form>
+      <p class="auth-link">Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+    </div>
+  </main>
+</body>
+</html>
