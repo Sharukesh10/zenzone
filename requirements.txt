@@ -1,0 +1,19 @@
+Flask==2.3.2
+transformers==4.40.0
+torch==2.2.0        # or the appropriate torch for your environment (cpu/gpu)
+speechrecognition==3.10.0
+librosa==0.10.0
+soundfile==0.12.1
+pydub==0.25.1
+numpy==1.26.0
+scipy==1.16.2       # Updated to available version
+python-dotenv==1.0.0  # For environment variables
+Flask-SQLAlchemy==3.1.1  # Database ORM
+SQLAlchemy==2.1.0  # Database toolkit
+plotly==5.18.0     # For interactive visualizations
+tqdm==4.66.1       # Progress bars for model loading
+requests==2.31.0   # HTTP library for API calls
+gunicorn==21.2.0   # Production server
+python-multipart==0.0.6  # For handling file uploads
+openai-whisper==20231117  # For improved speech recognition
+

@@ -1,0 +1,203 @@
+<!-- templates/index.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>ZenZone — Start Your Calm Session</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="/static/css/styles.css" rel="stylesheet" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="zen-glass">
+  <main class="glass-container">
+    <header class="glass-header">
+  <h1 class="zenzone-title">ZenZone</h1>
+      <p class="glass-subtitle">Your Personal Calm &amp; Stress Analyzer</p>
+    </header>
+    <div class="glass-card">
+      <div id="mic-area" class="glass-mic">
+        <button id="recordBtn" class="glass-btn">🎤 Start Session</button>
+        <p id="status" class="glass-status">Idle</p>
+      </div>
+      <div class="glass-meter">
+        <div class="glass-meter-label">Stress Level</div>
+        <div class="glass-progress-wrap">
+          <div id="progress" class="glass-progress-bar" style="width:0%">0%</div>
+        </div>
+        <div id="emotionLabel" class="glass-emotion">Emotion: —</div>
+      </div>
+      <div id="transcribedTextBox" class="glass-transcribed-text" style="display:none;">
+        <div class="transcribed-label">Transcribed Text:</div>
+        <div id="transcribedText"></div>
+      </div>
+      <div id="suggestion" class="glass-suggestion">
+        <h3>Suggestion</h3>
+        <p id="suggestionText">No data yet</p>
+        <div id="actionArea"></div>
+      </div>
+    </div>
+    <section class="glass-card glass-chart">
+      <h3>Your Stress Over Time</h3>
+      <canvas id="trendChart"></canvas>
+    </section>
+    <footer class="glass-footer">
+      <span>Made with <span style="color:#ffb4a2">&#10084;</span> for your peace of mind</span>
+    </footer>
+  </main>
+
+  <script src="/static/js/recorder.js"></script>
+  <script>
+    // small chart stub: will be updated with saved data (client-only demo)
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels: [], datasets: [{ label: 'Stress Score', data: [] }] },
+      options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+    });
+
+    // Hook up functions from recorder.js (see file)
+    window.onAnalyzeResult = function(result){
+      document.getElementById('status').innerText = "Done";
+      document.getElementById('emotionLabel').innerText = "Emotion: " + result.friendly_label;
+      document.getElementById('progress').style.width = result.stress_score + "%";
+      document.getElementById('progress').innerText = result.stress_score + "%";
+      document.getElementById('suggestionText').innerText = result.suggestion.activity;
+
+      // Show transcribed text
+      const transcribedBox = document.getElementById('transcribedTextBox');
+      const transcribedText = document.getElementById('transcribedText');
+      if(result.text && result.text.trim()) {
+        transcribedText.innerText = result.text;
+        transcribedBox.style.display = '';
+      } else {
+        transcribedText.innerText = '';
+        transcribedBox.style.display = 'none';
+      }
+
+      // update chart
+      const d = new Date().toLocaleTimeString();
+      chart.data.labels.push(d);
+      chart.data.datasets[0].data.push(result.stress_score);
+      chart.update();
+
+      // show simple action UI
+      const area = document.getElementById('actionArea');
+      area.innerHTML = '';
+      if(result.suggestion.action === 'breathing'){
+        const btn = document.createElement('button');
+        btn.innerText = 'Start 2-min breathing';
+        btn.className = 'btn';
+        btn.onclick = () => startBreathingAnimation(120);
+        area.appendChild(btn);
+      } else if(result.suggestion.action === 'play_lofi'){
+        area.innerHTML = `<audio controls src="/static/audio/mindfulness.mp3" onerror="this.style.display='none';this.insertAdjacentHTML('afterend', '<div class=\'audio-fallback\'>Audio not available.</div>')"></audio>`;
+      } else if(result.suggestion.action === 'nature_sounds'){
+        area.innerHTML = `<audio controls src="/static/audio/breathing.mp3" onerror="this.style.display='none';this.insertAdjacentHTML('afterend', '<div class=\'audio-fallback\'>Audio not available.</div>')"></audio>`;
+
+      } else {
+        const btn = document.createElement('button');
+        btn.innerText = 'Guided exercise';
+        btn.className = 'glass-btn';
+        btn.onclick = () => startGuidedExercise();
+        area.appendChild(btn);
+      }
+    };
+
+    // Guided exercise modal
+    function startGuidedExercise() {
+      const modal = document.createElement('div');
+      modal.className = 'modal guided-modal';
+      modal.innerHTML = `
+        <div class="guided-modal-content">
+          <h2 class="guided-title">Body Scan Meditation</h2>
+          <div class="guided-steps">
+            <div class="guided-step active">Follow along with the guided body scan meditation.</div>
+          </div>
+          <audio controls src="/static/audio/body-scan.m4a" class="meditation-audio"></audio>
+          <button id="closeGuided" class="glass-btn guided-close">Close</button>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      // Get the audio element and handle its events
+      const audio = modal.querySelector('audio');
+      audio.addEventListener('loadedmetadata', () => {
+        if (audio.duration === Infinity) {
+          audio.currentTime = 1e101;
+          audio.addEventListener('timeupdate', function getDuration() {
+            if (audio.duration !== Infinity) {
+              audio.currentTime = 0;
+              audio.removeEventListener('timeupdate', getDuration);
+            }
+          });
+        }
+      });
+      
+      // Handle the close button properly
+      modal.querySelector('#closeGuided').addEventListener('click', () => {
+        audio.pause();
+        audio.currentTime = 0;
+        modal.remove();
+      });
+      
+      // Also close on clicking outside the modal content
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          audio.pause();
+          audio.currentTime = 0;
+          modal.remove();
+        }
+      });
+      document.body.appendChild(modal);
+      const steps = modal.querySelectorAll('.guided-step');
+      let current = 0;
+      function showStep(idx) {
+        steps.forEach((el, i) => el.classList.toggle('active', i === idx));
+      }
+      showStep(current);
+      modal.querySelector('#nextStep').onclick = () => {
+        if (current < steps.length - 1) {
+          current++;
+          showStep(current);
+        } else {
+          modal.querySelector('#nextStep').disabled = true;
+        }
+      };
+      modal.querySelector('#closeGuided').onclick = () => modal.remove();
+    }
+
+    function startBreathingAnimation(seconds){
+      // Optional: create a modal with breathing circle and countdown
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div id="breathCircle" class="breath-circle"></div>
+          <div id="countdown">${seconds}</div>
+          <button id="closeModal" class="btn">Close</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      const close = modal.querySelector('#closeModal');
+      close.onclick = () => modal.remove();
+
+      // breathing animation simple: animate circle scale with interval
+      let remaining = seconds;
+      const countdown = modal.querySelector('#countdown');
+      const circle = modal.querySelector('#breathCircle');
+      const interval = setInterval(()=>{
+        remaining--;
+        countdown.innerText = remaining;
+        circle.classList.toggle('inhale');
+        if(remaining<=0){
+          clearInterval(interval);
+          modal.remove();
+        }
+      }, 4000); // 4s inhale/exhale cycle
+    }
+  </script>
+</body>
+</html>
