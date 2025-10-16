@@ -221,5 +221,9 @@ if __name__ == "__main__":
     CORS(app)
     import os
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    # Use production server for deployment
+    if os.environ.get('FLASK_ENV') == 'production':
+        app.run(host="0.0.0.0", port=port)
+    else:
+        app.run(host="0.0.0.0", port=port, debug=True)
 

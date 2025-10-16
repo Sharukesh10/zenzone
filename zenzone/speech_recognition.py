@@ -3,7 +3,12 @@ import os
 import logging
 import shutil
 import speech_recognition as sr
-import whisper
+try:
+    import whisper
+    WHISPER_AVAILABLE = True
+except ImportError:
+    WHISPER_AVAILABLE = False
+    logging.warning("Whisper not available, falling back to Google Speech Recognition")
 import tempfile
 import subprocess
 from pydub import AudioSegment
@@ -45,10 +50,18 @@ def find_ffmpeg():
 class SpeechToText:
     def __init__(self):
         self.recognizer = sr.Recognizer()
-        # Initialize whisper model (using 'tiny' for faster loading)
-        logger.info("Loading Whisper model...")
-        self.whisper_model = whisper.load_model("tiny")
-        logger.info("Whisper model loaded successfully")
+        # Initialize whisper model if available (using 'tiny' for faster loading)
+        if WHISPER_AVAILABLE:
+            try:
+                logger.info("Loading Whisper model...")
+                self.whisper_model = whisper.load_model("tiny")
+                logger.info("Whisper model loaded successfully")
+            except Exception as e:
+                logger.warning(f"Failed to load Whisper model: {e}")
+                self.whisper_model = None
+        else:
+            self.whisper_model = None
+            logger.info("Whisper not available, using Google Speech Recognition only")
         
         # Find FFmpeg executable and configure pydub to use it explicitly.
         ffmpeg_exe = find_ffmpeg()
@@ -129,15 +142,18 @@ class SpeechToText:
         # Ensure we have a WAV file for recognizers
         wav_path = self.convert_to_wav(audio_path)
         
-        # Try Whisper first
-        try:
-            result = self.whisper_model.transcribe(wav_path)
-            text = result.get("text", "").strip()
-            if text:
-                return text
-            logger.warning("Whisper transcription returned empty result, falling back to Google Speech")
-        except Exception as e:
-            logger.warning(f"Whisper transcription failed: {e}, falling back to Google Speech")
+        # Try Whisper first (if available)
+        if self.whisper_model is not None:
+            try:
+                result = self.whisper_model.transcribe(wav_path)
+                text = result.get("text", "").strip()
+                if text:
+                    return text
+                logger.warning("Whisper transcription returned empty result, falling back to Google Speech")
+            except Exception as e:
+                logger.warning(f"Whisper transcription failed: {e}, falling back to Google Speech")
+        else:
+            logger.info("Whisper not available, using Google Speech Recognition")
         
         # Fall back to Google Speech Recognition
         try:
