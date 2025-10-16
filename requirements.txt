@@ -9,7 +9,7 @@ numpy>=1.26.0
 scipy==1.16.2       # Updated to available version
 python-dotenv==1.0.0  # For environment variables
 Flask-SQLAlchemy==3.1.1  # Database ORM
-SQLAlchemy==2.1.0  # Database toolkit
+SQLAlchemy>=2.0.0  # Database toolkit
 plotly==5.18.0     # For interactive visualizations
 tqdm==4.66.1       # Progress bars for model loading
 requests==2.31.0   # HTTP library for API calls
